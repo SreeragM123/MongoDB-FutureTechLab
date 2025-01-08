@@ -1,73 +1,6 @@
-// import express from 'express'
-// import mongoose from 'mongoose'
-// import dotenv from 'dotenv'
-
-// dotenv.config()
-// const app=express()
-
-// app.use(express.json())
-
-// const mongodb=async()=>{
-//     try{
-//         // const connect=await mongoose.connect('mongodb+srv://sreeragsuresh001:S0KdqSl03hiDi3MB@cluster0.ujh7z.mongodb.net/Mydb')
-//         const connect=await mongoose.connect(`${process.env.MongoUrl}`)
-//         console.log("Connecting to MongoDB")
-//     }
-//     catch{
-//         console.log(error);
-//     }
-// }
-
-// app.get("/",(req,res)=>{
-//     res.send("HELLO");
-// })
-
-// mongodb();
-
-// const dataSchema = new mongoose.Schema({
-//     name: {
-//         type: String,
-//         required: true,
-//     },
-//     description:{
-//         type: String,
-//     }
-// });
-
-
-// const Item=mongoose.model("Item",dataSchema);
-
-
-// app.post("/additem",async(req,res)=>{
-//     try{
-//         const{name,description}=req.body;
-//         console.log(req.body);
-
-//         if(!name){
-//             return res.status(400).json({message:"Name is required"});
-//         }
-
-//         const newItem=new Item({name,description});
-//         await newItem.save();
-//         res.send.status(201).json({message:"Data added successfully",item:newItem})
-//     }catch(error){
-//         console.log(error);
-//         res.status(500).json({ message: "Server Error" });
-//     }
-  
-// })
-
-
-
-
-
-// app.listen(()=>{
-//     console.log(`server running on ${process.env.PORT}`);
-// })
-
-
 
 import express from 'express';
+import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
@@ -77,7 +10,7 @@ const app = express();
 
 // Middleware to parse JSON request body
 app.use(express.json());
-
+app.use(cors());
 const mongodb = async () => {
     try {
         // Use MongoDB connection string from environment variables
@@ -117,9 +50,69 @@ app.post("/additem", async (req, res) => {
         res.status(201).json({ message: "Data added successfully", item: newItem });
     } catch (error) {
         console.log(error);
-        res.status(500).json({ message: "Server Error" });  // Changed to 500 to reflect server errors
+        res.status(404).json({ message: "Server Error" });  // Changed to 500 to reflect server errors
     }
 });
+
+// GET all
+
+app.get("/item",async(req,res)=>{
+    try {
+        const items =await Item.find()
+        res.status(200).json(items)
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({message:"Server Error"})
+    }
+});
+
+//GET one item
+
+app.get("/item/:id",async(req,res)=>{
+    try {
+        const items=await Item.findById(req.params.id);
+        if(!items){
+            return res.status(404).json({message:"Item not found"});
+        }
+        res.status(200).json(items);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({message:"Server Error"});
+    }
+});
+
+
+// PUT method(update item)
+
+app.put("/item/:id",async(req,res)=>{
+    try {
+        const{name,description}=req.body
+        const updatedItem=await Item.findByIdAndUpdate(req.params.id,{name,description},{new:true,runValidators:true})
+        if(!updatedItem){
+            return res.status(404).json({message:"Item not found"})
+        }
+        res.status(200).json({message:"Item updated",item:updatedItem})
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({message:"Server Error"});
+    }
+})
+
+//DELETE
+
+app.delete("/item/:id",async(req,res)=>{
+    try{
+        const deletedItem=await Item.findByIdAndDelete(req.params.id)
+        if(!deletedItem){
+            return res.status(404).json({message:"Item not found"})
+        }
+        res.status(200).json({message:"Item deleted",item:deletedItem})
+    } catch(error){
+        console.log(error);
+        res.status(500).json({message:"Server Error"});
+    }
+    
+})
 
 app.listen(process.env.PORT || 3000, () => {
     console.log(`Server running on port ${process.env.PORT || 3000}`);
